@@ -1,4 +1,4 @@
-module iscript
+module github.com/lgylgy/iscript
 
 go 1.17
 
