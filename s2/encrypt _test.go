@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	key  = "6368616e676520746869732070617373776f726420746f206120736563726574"
+	key  = "1234"
 	text = "string to "
 )
 
@@ -19,5 +19,5 @@ func TestEncryption(t *testing.T) {
 
 	actual, err := Decrypt(value, key)
 	require.NoError(t, err)
-	require.Equal(t, actual, text)
+	require.Equal(t, string(actual), text)
 }

@@ -33,17 +33,17 @@ func Encrypt(input, output string, message []byte) error {
 	return err
 }
 
-func Decrypt(input string) (string, error) {
+func Decrypt(input string) ([]byte, error) {
 	file, err := os.Open(input)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer file.Close()
 
 	img, _, err := image.Decode(bufio.NewReader(file))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	msg := steganography.Decode(steganography.GetMessageSizeFromImage(img), img)
-	return string(msg), nil
+	return msg, nil
 }
