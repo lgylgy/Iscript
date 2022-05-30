@@ -18,5 +18,5 @@ func TestStega(t *testing.T) {
 
 	message, err := Decrypt(filepath.Join("testdata", "output.jpg"))
 	require.NoError(t, err)
-	require.Equal(t, message, text)
+	require.Equal(t, string(message), text)
 }
