@@ -2,7 +2,6 @@ package s1
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"sort"
 )
@@ -16,6 +15,5 @@ func Select(values []string, number, seed int) ([]string, error) {
 	rand.Shuffle(len(values), func(i, j int) {
 		values[i], values[j] = values[j], values[i]
 	})
-	log.Println(values)
 	return values[:number], nil
 }
