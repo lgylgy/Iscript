@@ -2,7 +2,10 @@ module github.com/lgylgy/iscript
 
 go 1.17
 
-require github.com/stretchr/testify v1.7.1
+require (
+	github.com/auyer/steganography v1.0.1
+	github.com/stretchr/testify v1.7.1
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
