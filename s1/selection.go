@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strings"
 )
 
 func Select(values []string, number, seed int) ([]string, error) {
@@ -16,4 +17,8 @@ func Select(values []string, number, seed int) ([]string, error) {
 		values[i], values[j] = values[j], values[i]
 	})
 	return values[:number], nil
+}
+
+func Split(value string, n int) []string {
+	return strings.SplitN(value, "", n)
 }
