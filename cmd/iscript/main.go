@@ -28,7 +28,7 @@ func main() {
 	}
 	config, err := s4.LoadConfiguration(flag.Arg(0))
 	if err != nil {
-		log.Fatalf("[x] unable to load config %v\n", err)
+		log.Fatalf("[x] unable to load config: %v\n", err)
 	}
 
 	log.Printf("[?] input: '%s'\n", config.Input)
@@ -36,7 +36,7 @@ func main() {
 
 	message, err := s4.Run(*encode, config)
 	if err != nil {
-		log.Fatalf("[x] process failed %v\n", err)
+		log.Fatalf("[x] process failed: %v\n", err)
 	}
 
 	if message != "" {

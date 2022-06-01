@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/lgylgy/iscript/s1"
 	"github.com/lgylgy/iscript/s2"
@@ -32,7 +33,7 @@ func Run(encode bool, config *Config) (string, error) {
 	return process.decode()
 }
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var letters = []rune("abcdefghijklmnopqrstuvwxyz ")
 
 func randString(n int) string {
 	b := make([]rune, n)
@@ -96,7 +97,7 @@ func (p *process) encode() error {
 	if len(messages) != size {
 		return fmt.Errorf("unable to split the message.")
 	}
-	log.Printf("[v] split message: %s\n", strings.Join(messages, "-"))
+	log.Printf("[v] split message: %s\n", strings.Join(messages, "$"))
 
 	elements := map[string]string{}
 	for i := range messages {
@@ -108,15 +109,16 @@ func (p *process) encode() error {
 	wgDone := make(chan bool)
 	err := run(p.config.Input, func(file fs.FileInfo) {
 		wg.Add(1)
-		go func() {
+		message, ok := elements[file.Name()]
+		go func(intput string, apply bool) {
 			defer wg.Done()
+			value := intput
 			key := p.config.Key
-			message, ok := elements[file.Name()]
-			if !ok {
-				key = randString(12)
-				message = randString(len(p.selection[0]))
+			if !apply {
+				key = randString(len(p.config.Key))
+				value = randString(len(p.config.Message) / len(p.selection))
 			}
-			text, err := s2.Encrypt(message, key)
+			text, err := s2.Encrypt(value, key)
 			if err != nil {
 				errs <- err
 				return
@@ -126,7 +128,7 @@ func (p *process) encode() error {
 				errs <- err
 				return
 			}
-		}()
+		}(message, ok)
 	})
 	if err != nil {
 		return err
@@ -140,7 +142,7 @@ func (p *process) encode() error {
 	select {
 	case <-wgDone:
 		log.Println("[v] successful encoding!")
-		return nil
+		return p.check()
 	case err := <-errs:
 		close(errs)
 		return err
@@ -164,4 +166,29 @@ func (p *process) decode() (string, error) {
 	}
 	log.Println("[v] successful decoding!")
 	return strings.Join(result, ""), nil
+}
+
+func (p *process) check() error {
+	log.Println("[?] checking...")
+
+	inputFiles, err := ioutil.ReadDir(p.config.Input)
+	if err != nil {
+		return err
+	}
+	outputFile, err := ioutil.ReadDir(p.config.Output)
+	if err != nil {
+		return err
+	}
+
+	if len(inputFiles) != len(outputFile) {
+		return fmt.Errorf("missing output files")
+	}
+
+	for _, file := range outputFile {
+		if time.Since(file.ModTime()) > time.Minute {
+			return fmt.Errorf("modification date mismatch.")
+		}
+	}
+	log.Println("[v] successful checking!")
+	return nil
 }
