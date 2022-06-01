@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/lgylgy/iscript/s1"
 	"github.com/lgylgy/iscript/s2"
@@ -52,27 +53,23 @@ func newProcess(config *Config) *process {
 	}
 }
 
-func run(path string, fun func(fs.FileInfo) error) error {
+func run(path string, fun func(fs.FileInfo)) error {
 	filesInfo, err := ioutil.ReadDir(path)
 	if err != nil {
 		return err
 	}
 	for _, file := range filesInfo {
-		err := fun(file)
-		if err != nil {
-			return err
-		}
+		fun(file)
 	}
 	return nil
 }
 
 func (p *process) selectFiles() error {
 	files := []string{}
-	err := run(p.config.Input, func(file fs.FileInfo) error {
+	err := run(p.config.Input, func(file fs.FileInfo) {
 		if !file.IsDir() {
 			files = append(files, file.Name())
 		}
-		return nil
 	})
 	if err != nil {
 		return err
@@ -100,20 +97,48 @@ func (p *process) encode() error {
 	for i := range messages {
 		elements[p.selection[i]] = messages[i]
 	}
-	err := run(p.config.Input, func(file fs.FileInfo) error {
-		key := p.config.Key
-		message, ok := elements[file.Name()]
-		if !ok {
-			key = randString(12)
-			message = randString(len(p.selection[0]))
-		}
-		text, err := s2.Encrypt(message, key)
-		if err != nil {
-			return err
-		}
-		return s3.Encrypt(filepath.Join(p.config.Input, file.Name()), filepath.Join(p.config.Output, file.Name()), text)
+
+	var wg sync.WaitGroup
+	errs := make(chan error)
+	wgDone := make(chan bool)
+	err := run(p.config.Input, func(file fs.FileInfo) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			key := p.config.Key
+			message, ok := elements[file.Name()]
+			if !ok {
+				key = randString(12)
+				message = randString(len(p.selection[0]))
+			}
+			text, err := s2.Encrypt(message, key)
+			if err != nil {
+				errs <- err
+				return
+			}
+			err = s3.Encrypt(filepath.Join(p.config.Input, file.Name()), filepath.Join(p.config.Output, file.Name()), text)
+			if err != nil {
+				errs <- err
+				return
+			}
+		}()
 	})
-	return err
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		wg.Wait()
+		close(wgDone)
+	}()
+
+	select {
+	case <-wgDone:
+		return nil
+	case err := <-errs:
+		close(errs)
+		return err
+	}
 }
 
 func (p *process) decode() (string, error) {
