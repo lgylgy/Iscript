@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -80,18 +81,22 @@ func (p *process) selectFiles() error {
 		return err
 	}
 	if len(selection) == 0 {
-		return fmt.Errorf("internal error")
+		return fmt.Errorf("unable to select files.")
 	}
+	log.Printf("[v] files selection: %v\n", selection)
 	p.selection = selection
 	return nil
 }
 
 func (p *process) encode() error {
+	log.Println("[?] encoding...")
+
 	size := len(p.selection)
 	messages := s1.Split(p.config.Message, size)
 	if len(messages) != size {
-		return fmt.Errorf("internal error")
+		return fmt.Errorf("unable to split the message.")
 	}
+	log.Printf("[v] split message: %s\n", strings.Join(messages, "-"))
 
 	elements := map[string]string{}
 	for i := range messages {
@@ -134,6 +139,7 @@ func (p *process) encode() error {
 
 	select {
 	case <-wgDone:
+		log.Println("[v] successful encoding!")
 		return nil
 	case err := <-errs:
 		close(errs)
@@ -142,6 +148,8 @@ func (p *process) encode() error {
 }
 
 func (p *process) decode() (string, error) {
+	log.Println("[?] decoding...")
+
 	result := []string{}
 	for _, file := range p.selection {
 		value, err := s3.Decrypt(filepath.Join(p.config.Output, file))
@@ -154,5 +162,6 @@ func (p *process) decode() (string, error) {
 		}
 		result = append(result, string(text))
 	}
+	log.Println("[v] successful decoding!")
 	return strings.Join(result, ""), nil
 }
