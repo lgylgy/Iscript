@@ -23,9 +23,12 @@ func TestSelection(t *testing.T) {
 }
 
 func TestSplit(t *testing.T) {
-	values := Split("abc", 12)
-	require.Equal(t, values, []string{"a", "b", "c"})
-
-	values = Split("abc", 2)
-	require.Equal(t, values, []string{"a", "bc"})
+	values := Split("abc hoho", 1)
+	require.Equal(t, values, []string{"abc hoho"})
+	values = Split("abc hoho", 2)
+	require.Equal(t, values, []string{"abc ", "hoho"})
+	values = Split("abc hoho", 3)
+	require.Equal(t, values, []string{"abc", " ho", "ho"})
+	values = Split("abc hoho", 15)
+	require.Equal(t, values, []string{"a", "b", "c", " ", "h", "o", "h", "o"})
 }
